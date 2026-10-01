@@ -1,0 +1,17 @@
+---
+title: "p8105_hw2_ryd2106"
+author: "Risa Dickerman"
+date: "2026-09-30"
+output: github_document
+---
+Library load in
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+Load in Data
+```{r}
+data = read_csv("./data_hw/NYC_Transit_Data.csv") |> 
+  janitor::clean_names()
+```
+
