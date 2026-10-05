@@ -7,6 +7,7 @@ output: github_document
 Library load in
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(readxl)
 ```
 
 # Problem 1
@@ -119,4 +120,58 @@ atrain_stations = rerouted_train |>
 There are `r atrain_stations` distinct stations that serve the A train.
 
 
+#Problem 2
+
+```{r Load in and clean trash dataset}
+#Clean dataset for Mr.Trashy
+mr_trashy = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 1,
+                    na = c(".", "", "NA")) |> 
+  janitor::clean_names() |> 
+  select(-x15, -x16) |> 
+  drop_na(dumpster) |> 
+  mutate(
+    sports_balls =
+      as.integer(sports_balls)) |> 
+  mutate(
+    year = 
+      as.numeric(year))|> 
+  mutate(
+    origin = "mr_trashy")
+
+#Load and clean dataset for Professor Trash Wheel
+professor_trash = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 2,
+                    na = c(".", "", "NA")) |> 
+  janitor::clean_names() |> 
+  drop_na(dumpster)|> 
+  mutate(
+    origin = "professor_trash")
+
+#Load and clean dataset for Gwynnda the Trash
+gwynnda_the_trash = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 4,
+                    na = c(".", "", "NA")) |> 
+    janitor::clean_names() |> 
+    drop_na(dumpster) |> 
+  mutate(
+    origin = "gwynnda_the_trash")
+```
+
+```{r Combine datasets and analytics}
+trash_full = 
+  full_join(mr_trashy, professor_trash, by = NULL) |> 
+  full_join(gwynnda_the_trash, by =NULL)
+
+# Total weight of trash collected by Professor Trash Wheel
+professor_weight = professor_trash |> 
+  pull(weight_tons) |> 
+  sum()
+
+#Total number of cigarette butts collected by Gwynnda in June of 2022
+gwynnda_ciggies = gwynnda_the_trash |> 
+  filter(year == 2022) |> 
+  filter(month == "June") |> 
+  pull(cigarette_butts) |> 
+  sum()
+
+```
+This combined dataset (trash_full) describes the total and specific amounts of certain trash collected by the following trash wheels: Mr. Trash Wheel (mr_trashy), Professor Trash Wheel (professor_trash), and Gwynnda (gwynnda_the_trash). When the datasets for these individual wheels were combined, they resulted in a `r dim(trash_full)` dataframe. From this dataframe observers can note that `r nrow(gwynnda_the_trash)` dumpsters come from Gwynnda, `r nrow(mr_trashy)` dumpsters come from Mr. Trash Wheel, and `r nrow(professor_trash)` dumpsters come from Professor Trash Wheel. Additionally, observers can note that, in total, `r professor_weight` pounds collected by Professor Trash Wheel. Gwynnda collected `r as.character(gwynnda_ciggies)` cigarette butts during June 2022.
 
