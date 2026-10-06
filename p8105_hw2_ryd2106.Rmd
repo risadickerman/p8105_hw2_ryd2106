@@ -144,7 +144,10 @@ professor_trash = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 2,
   janitor::clean_names() |> 
   drop_na(dumpster)|> 
   mutate(
-    origin = "professor_trash")
+    origin = "professor_trash") |> 
+  mutate(
+    plastic_bottles = as.numeric(plastic_bottles)
+  )
 
 #Load and clean dataset for Gwynnda the Trash
 gwynnda_the_trash = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 4,
@@ -173,5 +176,9 @@ gwynnda_ciggies = gwynnda_the_trash |>
   sum()
 
 ```
-This combined dataset (trash_full) describes the total and specific amounts of certain trash collected by the following trash wheels: Mr. Trash Wheel (mr_trashy), Professor Trash Wheel (professor_trash), and Gwynnda (gwynnda_the_trash). When the datasets for these individual wheels were combined, they resulted in a `r dim(trash_full)` dataframe. From this dataframe observers can note that `r nrow(gwynnda_the_trash)` dumpsters come from Gwynnda, `r nrow(mr_trashy)` dumpsters come from Mr. Trash Wheel, and `r nrow(professor_trash)` dumpsters come from Professor Trash Wheel. Additionally, observers can note that, in total, `r professor_weight` pounds collected by Professor Trash Wheel. Gwynnda collected `r as.character(gwynnda_ciggies)` cigarette butts during June 2022.
+
+This combined dataset (trash_full) describes the total and specific amounts of certain trash collected by the following trash wheels: Mr. Trash Wheel (mr_trashy), Professor Trash Wheel (professor_trash), and Gwynnda (gwynnda_the_trash). When the datasets for these individual wheels were combined, they resulted in a `r dim(trash_full)` dataframe. From this dataframe observers can note that `r nrow(gwynnda_the_trash)` dumpsters come from Gwynnda, `r nrow(mr_trashy)` dumpsters come from Mr. Trash Wheel, and `r nrow(professor_trash)` dumpsters come from Professor Trash Wheel. Additionally, observers can note interesting tidbits. For example, in total, `r professor_weight` pounds collected by Professor Trash Wheel. Additionally, Gwynnda collected `r as.character(gwynnda_ciggies)` cigarette butts during June 2022.
+
+#Problem 3
+
 
