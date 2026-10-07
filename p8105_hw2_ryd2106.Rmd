@@ -13,7 +13,7 @@ library(readxl)
 # Problem 1
 
 Load in and transform data
-```{r}
+```{r train data retreival and cleaning}
 #Read in dataset
 train_data = read_csv("./data_hw/NYC_Transit_Data.csv",
                 na = c(".", "NA", ""),
@@ -21,7 +21,8 @@ train_data = read_csv("./data_hw/NYC_Transit_Data.csv",
               Route8 = col_character(),
               Route9 = col_character(),
               Route10 = col_character(),
-              Route11 = col_character())) |> 
+              Route11 = col_character()),
+            show_col_types = FALSE) |> 
 #clean the data set
   janitor::clean_names() |> 
 #vector selection
@@ -31,39 +32,18 @@ train_data = read_csv("./data_hw/NYC_Transit_Data.csv",
     entry = case_match(
       entry,
       "YES" ~ TRUE,
-      "NO" ~ FALSE)) |> 
-#Convert the entry vector from character to logical
-  mutate(
-    entry = as.logical(entry)
-  )
-head(train_data)
-#Quiet uneccesary warning message
-show_col_types = FALSE
-  
+      "NO" ~ FALSE)) 
 ```
 
-The resultant dataset contains 19 different variables. Of which, the following 
-are character types: line, station_name, each of the 11 routes, vending, 
-and entrance_type. The numeric vectors are station_latitude, and
-station_longitude. The logical vectors are: entry, and ada. So far, I have
-tidied the dataset with the janitor function. I then, converted the Yes/No 
-character values in the entry vector to TRUE/FALSE logical values. To ensure all
-routes were character values and not partially numeric, I converted their value
-types to character ones.Finally, I mutated this entry vector type from character 
-to logical. The final data set is a (1868 x 19) dataset. This dataset is not tidy 
-since the route data is spread over multiple columns when it is technically a 
-single variable. To fix this, the route data should be condensed into two 
-variable columns. One stating the number of routes passing through the station, 
-the other stating what these routes are. Additionally, the station name is 
-separated into two columns and should be combined into one. Finally there are 
-many repeats of the same entry. To fix this the distinct function should be 
-applied to get only one true entry value.
+The resultant dataset contains 19 different variables. Of which, the following are character types: line, station_name, each of the 11 routes, vending,  and entrance_type. The numeric vectors are station_latitude, and station_longitude. The logical vectors are: entry, and ada. So far, I have tidied the dataset with the janitor function. I then, converted the Yes/No  character values in the entry vector to TRUE/FALSE logical values. To ensure all routes were character values and not partially numeric, I converted their value types to character ones.Finally, I mutated this entry vector type from character to logical. The final data set is a (1868 x 19) table. The data is not tidy since the route data is spread over multiple columns when it is technically a single variable. To fix this, the route data should be condensed into two variable columns. One stating the number of routes passing through the station, the other stating what these routes are. There are also many repeats of the same entry. To fix this the distinct function should be applied to get only one true entry value.
 
-```{r}
+```{r train data operations}
 #Numer of unique stations
 combined_stations = unite(train_data, station_united, line, station_name) 
+
 distinct_stations = combined_stations |> 
-  unique() 
+  distinct(station_united, .keep_all = TRUE) 
+
 #Number of ADA compiant stations
 ada_distinct = distinct_stations |> 
   filter(ada == TRUE) |> 
@@ -83,18 +63,13 @@ entrance_vending = combined_stations |>
 entry_count = combined_stations |>
   pull(entry) |> 
   sum(na.rm = TRUE) 
-#Numeric sum of vending
-vending_count = entrance_vending |>
-  mutate(
-    vending = case_match(
-      vending,
-      1 ~ 1,
-      0 ~ 0,
-      NaN ~ 0)) |> 
+#Amount of vending machines not present
+no_vending = entrance_vending |>
+  filter(vending == 0 | is.na(vending)) |> 
   pull(vending) |> 
-  sum(na.rm = TRUE) 
-
-portion_sum =  entry_count/ vending_count
+  length()
+  
+portion_sum =  entry_count/ no_vending
   
 
 
@@ -128,7 +103,10 @@ mr_trashy = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 1,
                     na = c(".", "", "NA")) |> 
   janitor::clean_names() |> 
   select(-x15, -x16) |> 
-  drop_na(dumpster) |> 
+  drop_na(dumpster) |>
+  mutate(
+    sports_balls = round(sports_balls)
+  ) |> 
   mutate(
     sports_balls =
       as.integer(sports_balls)) |> 
@@ -159,9 +137,7 @@ gwynnda_the_trash = read_excel("./data_hw/Trashy_Data.xlsx", sheet = 4,
 ```
 
 ```{r Combine datasets and analytics}
-trash_full = 
-  full_join(mr_trashy, professor_trash, by = NULL) |> 
-  full_join(gwynnda_the_trash, by =NULL)
+trash_full = bind_rows(mr_trashy, professor_trash, gwynnda_the_trash) 
 
 # Total weight of trash collected by Professor Trash Wheel
 professor_weight = professor_trash |> 
@@ -177,7 +153,7 @@ gwynnda_ciggies = gwynnda_the_trash |>
 
 ```
 
-This combined dataset (trash_full) describes the total and specific amounts of certain trash collected by the following trash wheels: Mr. Trash Wheel (mr_trashy), Professor Trash Wheel (professor_trash), and Gwynnda (gwynnda_the_trash). When the datasets for these individual wheels were combined, they resulted in a `r dim(trash_full)` dataframe. From this dataframe observers can note that `r nrow(gwynnda_the_trash)` dumpsters come from Gwynnda, `r nrow(mr_trashy)` dumpsters come from Mr. Trash Wheel, and `r nrow(professor_trash)` dumpsters come from Professor Trash Wheel. Additionally, observers can note interesting tidbits. For example, in total, `r professor_weight` pounds collected by Professor Trash Wheel. Additionally, Gwynnda collected `r as.character(gwynnda_ciggies)` cigarette butts during June 2022.
+This combined dataset (trash_full) describes the total and specific amounts of certain trash collected by the following trash wheels: Mr. Trash Wheel (mr_trashy), Professor Trash Wheel (professor_trash), and Gwynnda (gwynnda_the_trash). Some key variables of this include the dumpsters produced by thesse wheels. Specifically they list the dumpsters number and month and year it was collected. The weight and volume of the trash collected by the dumpster were identified along with the specific trash (bottles, cigarette butts, etc). Finally an additional origin variable lable was added to ensure that when tables are manipulated an joined, the source of the dumpsters were not lost. When the datasets for these individual wheels were combined, they resulted in a `r dim(trash_full)` dataframe. From this dataframe observers can note that `r nrow(gwynnda_the_trash)` dumpsters come from Gwynnda, `r nrow(mr_trashy)` dumpsters come from Mr. Trash Wheel, and `r nrow(professor_trash)` dumpsters come from Professor Trash Wheel. Additionally, observers can note interesting tidbits. For example, in total, `r professor_weight` tons of trash was collected by Professor Trash Wheel. Additionally, Gwynnda collected `r as.character(gwynnda_ciggies)` cigarette butts during June 2022.
 
 #Problem 3
 
@@ -220,11 +196,20 @@ total_women = mci_base_data |>
   nrow()
 women_prop = apoe4_pos_women / total_women
 
+#total number of participants entering
+partic_bef_filter = read_csv("./data_hw/MCI_baseline.csv",
+                    skip = 1,
+                    na = c(".", "", "NA"),
+                    show_col_types = FALSE) |> 
+  janitor::clean_names() |>
+  pull(id) |> 
+  length()
+
 
 ```
 This data set was tidied and cleaned through the following ways. After loading the dataset in, I skipped the first line to avoid confusing column labels. I then converted all NA synonyms to the na symbol. Applying tidy converted the column labels into readable snakecase. To ensure that the sex and apoe4 columns were not numeric I converted them to factor data types. Participants with MCI at the start of the study would mess up the results. To avoid this I filtered out these individuals.
 
-The resultant data set disseminates the id, current age, sex, education apoe4 carrier status, and the age at onset. The apoe4 column illustrates which participants are carriers of the APOE4 gene. Those that are carriers are marked as 1, while non-carriers are 0. The data set is a `r dim(mci_base_data)` table. While there were `r max(mci_base_data$id)` participants who initially signed up, only `r nrow(mci_base_data)` actually participated. Of this set, only `r mci_developed` participants developed MCI. The average baseline age was `r baseline_avg` years. Women had a `r women_prop` proportion of carrying the APOE4 gene.
+The resultant data set disseminates the id, current age, sex, education apoe4 carrier status, and the age at onset. The apoe4 column illustrates which participants are carriers of the APOE4 gene. Those that are carriers are marked as 1, while non-carriers are 0. The data set is a `r dim(mci_base_data)` table. While there were `r partic_bef_filter` participants who initially signed up, only `r nrow(mci_base_data)` actually participated. Of this set, only `r mci_developed` participants developed MCI. The average baseline age was `r baseline_avg` years. Women had a `r women_prop` proportion of carrying the APOE4 gene.
 
 
 ```{r MCI Amyloid}
@@ -239,7 +224,22 @@ mci_amyloid = read_csv("./data_hw/mci_amyloid.csv",
                     "Time 8" = col_double(),
                   )) |> 
   janitor::clean_names() |> 
-  rename(id = study_id)
+  rename(id = study_id) |> 
+  pivot_longer(
+    time_2:time_8,
+    names_to = "time",
+    values_to = "420/480"
+  ) |> 
+  mutate(
+    time = case_match(
+    time,
+    "time_2" ~ 2,
+    "time_4" ~ 4,
+    "time_6" ~ 6,
+    "time_8" ~ 8
+  ))
+    
+  
 
 #Unique base
 base_unique = 
@@ -252,12 +252,14 @@ amyloid_unique =
   pull(id)
 
 #Finding participants in both studies
-mci_joined = 
+mci_both = 
   inner_join(mci_base_data, mci_amyloid, by = "id") 
+#Exporting dataframe
+write_csv(mci_both, "particpants_across_studies.csv", append = FALSE)
 
 
 ```
 
-This MCI amyloid dataset was read into the R program and cleaned through the following steps. The first line was skipped as it contains only comments and not true column names. The baseline and time 2-8 columns were converted from character values in numeric values. The janitor function was called in to clean the column names. To make further table joining possible, I renamed the study_id to id.
+This MCI amyloid dataset was read into the R program and cleaned through the following steps. The first line was skipped as it contains only comments and not true column names. The baseline and time 2-8 columns were converted from character values in numeric values. The janitor function was called in to clean the column names. To make further table joining possible, I renamed the study_id to id. As the amyloid data was untidy I converted the four time_2-time_8 columns into two columns, one maintaining the year of measurement after the study initiation (time) and the other holding the 42/40 ratio measurements.
 
-It was found that the following participants were in the base dataset while not appearing in the amyloid one: `r base_unique`. Similarly the following participants were in the amyloid data set and not the base one: `r amyloid_unique`. When joining the tables based on similar id's the resultant table was `r dim(mci_joined)`. The table depicted both base dataset conditions and amyloid measurements.
+It was found that `r length(base_unique)` participants were in the base dataset while not appearing in the amyloid one. Similarly, `r length(amyloid_unique)` participants were in the amyloid data set and not the base one. When joining the tables based on similar id's the resultant table was `r dim(mci_both)`. The table depicted both base measurements and amyloid measurements over the following years.
