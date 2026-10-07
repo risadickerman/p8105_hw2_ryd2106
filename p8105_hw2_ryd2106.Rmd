@@ -181,4 +181,83 @@ This combined dataset (trash_full) describes the total and specific amounts of c
 
 #Problem 3
 
+Amyloid B42/40 : promise for daignosing and predicting disease outcomes.
 
+```{r MCI Baseline}
+mci_base_data = read_csv("./data_hw/MCI_baseline.csv",
+                    skip = 1,
+                    na = c(".", "", "NA")) |> 
+  janitor::clean_names() |> 
+  mutate(
+    sex = as.factor(sex),
+    apoe4 = as.factor(apoe4)) |> 
+  filter( (age_at_onset > current_age) | is.na(age_at_onset))
+
+# Number that developed mci
+mci_developed = mci_base_data |> 
+  filter(
+    !is.na(age_at_onset)
+  ) |> 
+  nrow()
+
+#Average age of baseline
+baseline_avg = mci_base_data |> 
+  pull(current_age) |> 
+  mean()
+baseline_avg = round(baseline_avg, 2)
+#Proportion of APOE4 carriers are women
+  #APOE4 Women
+apoe4_pos_women = mci_base_data |> 
+    filter(
+    sex == 0) |> 
+    filter(
+      apoe4 ==1
+    ) |> 
+  nrow()
+total_women = mci_base_data |> 
+  filter(
+    sex == 0) |> 
+  nrow()
+women_prop = apoe4_pos_women / total_women
+
+
+```
+This data set was tidied and cleaned through the following ways. After loading the dataset in, I skipped the first line to avoid confusing column labels. I then converted all NA synonyms to the na symbol. Applying tidy converted the column labels into readable snakecase. To ensure that the sex and apoe4 columns were not numeric I converted them to factor data types. Participants with MCI at the start of the study would mess up the results. To avoid this I filtered out these individuals.
+
+The resultant data set disseminates the id, current age, sex, education apoe4 carrier status, and the age at onset. The apoe4 column illustrates which participants are carriers of the APOE4 gene. Those that are carriers are marked as 1, while non-carriers are 0. The data set is a `r dim(mci_base_data)` table. While there were `r max(mci_base_data$id)` participants who initially signed up, only `r nrow(mci_base_data)` actually participated. Of this set, only `r mci_developed` participants developed MCI. The average baseline age was `r baseline_avg` years. Women had a `r women_prop` proportion of carrying the APOE4 gene.
+
+
+```{r MCI Amyloid}
+mci_amyloid = read_csv("./data_hw/mci_amyloid.csv",
+                    skip = 1,
+                    na = c(".", "", "NA"),
+                  col_types = cols(
+                    "Baseline" = col_double(),
+                    "Time 2" = col_double(),
+                    "Time 4" = col_double(),
+                    "Time 6" = col_double(),
+                    "Time 8" = col_double(),
+                  )) |> 
+  janitor::clean_names() |> 
+  rename(id = study_id)
+
+#Unique base
+base_unique = 
+  anti_join(mci_base_data, mci_amyloid, by = "id") |> 
+  pull(id)
+
+#Unique amyloid
+amyloid_unique = 
+  anti_join(mci_amyloid, mci_base_data, by = "id") |> 
+  pull(id)
+
+#Finding participants in both studies
+mci_joined = 
+  inner_join(mci_base_data, mci_amyloid, by = "id") 
+
+
+```
+
+This MCI amyloid dataset was read into the R program and cleaned through the following steps. The first line was skipped as it contains only comments and not true column names. The baseline and time 2-8 columns were converted from character values in numeric values. The janitor function was called in to clean the column names. To make further table joining possible, I renamed the study_id to id.
+
+It was found that the following participants were in the base dataset while not appearing in the amyloid one: `r base_unique`. Similarly the following participants were in the amyloid data set and not the base one: `r amyloid_unique`. When joining the tables based on similar id's the resultant table was `r dim(mci_joined)`. The table depicted both base dataset conditions and amyloid measurements.
